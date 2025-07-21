@@ -1,0 +1,156 @@
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#define TOTAL_BLOCKS 100  
+int *memory;
+struct block {
+	int block_number; 	 
+	struct block *next;    
+};
+struct file {
+	char filename[20];    
+	struct block *head;    
+	int block_count; 	 
+	struct file *next;
+};
+struct file *root = NULL;
+void initialize_memory(int total_blocks);
+void create_file(int total_blocks);
+void display_files();
+void generate_linked_blocks(struct block **head, int count, int total_blocks);
+int count_free_blocks(int total_blocks);
+int file_exists(char *filename);
+int is_valid_filename(const char *filename);
+int main() {
+	printf("Mahima Ann Abraham\tRoll No.: 63\n");
+	int total_blocks;
+	printf("Total No. of blocks(memory): ");
+	scanf("%d", &total_blocks);
+	memory = (int *)malloc(total_blocks * sizeof(int));  
+	srand(time(NULL));  //random number
+	initialize_memory(total_blocks);
+	char choice;
+	do {
+    	printf("Want to create a file? (Y/N): ");
+    	scanf(" %c", &choice);  // Space be4 %c ignores whitespace
+    	if (choice == 'Y' || choice == 'y') {
+        	create_file(total_blocks);
+    	} else if (choice == 'N' || choice == 'n') {
+        	printf("Exiting...\n");
+    	} else {
+        	printf("Invalid Choice!\n");
+    	}
+	} while (choice != 'N' && choice != 'n');
+	display_files();
+	free(memory);  
+	return 0;
+}
+void initialize_memory(int total_blocks) {
+	for (int i = 0; i < total_blocks; i++) {
+    	memory[i] = 0;  
+	}
+}
+int file_exists(char *filename) {
+	struct file *ptr = root;
+	while (ptr != NULL) {
+    	if (strcmp(ptr->filename, filename) == 0) {
+        	return 1;  
+    	}
+    	ptr = ptr->next;
+	}
+	return 0;  // File doesnt exist
+}
+int is_valid_filename(const char *filename) {
+	return strchr(filename, '.') != NULL;
+}
+int count_free_blocks(int total_blocks) {
+	int free_count = 0;
+	for (int i = 0; i < total_blocks; i++) {
+    	if (memory[i] == 0) {
+        	free_count++;  //free blocks count
+    	}
+	}
+	return free_count;
+}
+void generate_linked_blocks(struct block **head, int count, int total_blocks) {
+	struct block *current = NULL;
+	for (int i = 0; i < count; i++) {
+    	struct block *new_block = (struct block *)malloc(sizeof(struct block));
+    	int block_number;
+    	do {
+        	block_number = rand() % total_blocks;  //random block number
+    	} while (memory[block_number] != 0);  
+    	memory[block_number] = 1;  //set block non-empty
+    	new_block->block_number = block_number;
+    	new_block->next = NULL;
+    	if (*head == NULL) {
+        	*head = new_block;  // First blockin file
+    	} else {
+        	current->next = new_block;  //previous block linked to current
+    	}
+    	current = new_block;
+	}
+}
+void create_file(int total_blocks) {
+	struct file *new_file = (struct file *)malloc(sizeof(struct file));
+	printf("Filename : ");
+	scanf("%s", new_file->filename);
+	if (!is_valid_filename(new_file->filename)) {
+    	printf("Must contain an extension!!!\n");
+    	free(new_file);
+    	return;
+	}
+	if (file_exists(new_file->filename)) {
+    	printf("File already exists!\n");
+    	free(new_file);
+    	return;
+	}
+	printf("File size (in blocks): ");
+	scanf("%d", &new_file->block_count);
+	int free_blocks = count_free_blocks(total_blocks);
+	if (new_file->block_count > free_blocks) {
+    	printf("Cannot allocate file!\n");
+    	free(new_file);
+    	return;
+	}
+	new_file->head = NULL;
+	generate_linked_blocks(&new_file->head, new_file->block_count, total_blocks);
+	new_file->next = NULL;
+	if (root == NULL) {
+    	root = new_file;
+	} else {
+    	struct file *ptr = root;
+    	while (ptr->next != NULL) {
+        	ptr = ptr->next;
+    	}
+    	ptr->next = new_file;
+	}
+	printf("File '%s' created.\n", new_file->filename);
+}
+void display_files() {
+	if (root == NULL) {
+    	printf("No files :( \n");
+    	return;
+	}
+	printf("\n\t\t\tFILE ALLOCATION TABLE\n");
+	printf("FileName\tFile_Size\tBlocks_Allocated\n");
+	printf("--------------------------------------------------------\n");
+	struct file *ptr = root;
+	while (ptr != NULL) {
+    	printf("%s\t\t%d\t\t", ptr->filename, ptr->block_count);
+    	struct block *block_ptr = ptr->head;
+    	while (block_ptr != NULL) {
+        	if (block_ptr->next != NULL) {
+            	printf("%d -> ", block_ptr->block_number);
+        	} else {
+            	printf("%d", block_ptr->block_number);
+        	}
+        	block_ptr = block_ptr->next;
+    	}
+    	printf("\n");
+    	ptr = ptr->next;
+	}
+}
